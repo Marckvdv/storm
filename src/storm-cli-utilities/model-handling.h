@@ -47,9 +47,12 @@
 #include "storm/settings/modules/ModelCheckerSettings.h"
 #include "storm/settings/modules/TransformationSettings.h"
 #include "storm/settings/modules/HintSettings.h"
+#include "storm/settings/modules/RobustSettings.h"
 #include "storm/storage/Qvbs.h"
 
 #include "storm/utility/Stopwatch.h"
+
+#include "storm/robust/ObservationGenerator.h"
 
 namespace storm {
     namespace cli {
@@ -1142,6 +1145,7 @@ namespace storm {
         void processInputWithValueTypeAndDdlib(SymbolicInput const& input, ModelProcessingInformation const& mpi) {
             auto abstractionSettings = storm::settings::getModule<storm::settings::modules::AbstractionSettings>();
             auto counterexampleSettings = storm::settings::getModule<storm::settings::modules::CounterexampleGeneratorSettings>();
+            auto robustSettings = storm::settings::getModule<storm::settings::modules::RobustSettings>();
 
             // For several engines, no model building step is performed, but the verification is started right away.
             if (mpi.engine == storm::utility::Engine::AbstractionRefinement && abstractionSettings.getAbstractionRefinementMethod() == storm::settings::modules::AbstractionSettings::Method::Games) {
@@ -1157,6 +1161,14 @@ namespace storm {
                         verifyModel<DdType, VerificationValueType>(model, input, mpi);
                     }
                 }
+            }
+
+            STORM_PRINT("ROUNDS: " << robustSettings.rounds() << std::endl);
+            //auto model = input.model;
+            auto model = storm::api::buildSparseModel<BuildValueType>(input.model.get(), storm::builder::BuilderOptions());
+            if (robustSettings.rounds() > 0) {
+                    storm::robust::ObservationGenerator<BuildValueType> generator(*model.get());
+                    generator.generateObservations(10, 10);
             }
         }
         

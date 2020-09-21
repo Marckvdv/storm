@@ -41,6 +41,7 @@
 #include "storm/settings/modules/TransformationSettings.h"
 #include "storm/settings/modules/HintSettings.h"
 #include "storm/settings/modules/OviSolverSettings.h"
+#include "storm/settings/modules/RobustSettings.h"
 #include "storm/utility/macros.h"
 #include "storm/io/file.h"
 #include "storm/utility/string.h"
@@ -675,6 +676,7 @@ namespace storm {
             storm::settings::addModule<storm::settings::modules::TransformationSettings>();
             storm::settings::addModule<storm::settings::modules::HintSettings>();
             storm::settings::addModule<storm::settings::modules::OviSolverSettings>();
+            storm::settings::addModule<storm::settings::modules::RobustSettings>();
         }
 
     }
