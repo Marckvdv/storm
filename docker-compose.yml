@@ -1,0 +1,13 @@
+version: '2.0'
+services:
+    dev:
+        container_name: stormdev
+        image: storm:dev
+        volumes:
+            - type: bind
+              source: .
+              target: /home/storm
+        command: tail -F A
+
+volumes:
+    src:
