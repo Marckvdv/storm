@@ -53,6 +53,8 @@
 #include "storm/utility/Stopwatch.h"
 
 #include "storm/robust/ObservationGenerator.h"
+#include "storm/robust/ObservationSparseModelBuilder.h"
+#include "storm/robust/AmbiguitySet.h"
 
 namespace storm {
     namespace cli {
@@ -1167,8 +1169,16 @@ namespace storm {
             //auto model = input.model;
             auto model = storm::api::buildSparseModel<BuildValueType>(input.model.get(), storm::builder::BuilderOptions());
             if (robustSettings.rounds() > 0) {
-                    storm::robust::ObservationGenerator<BuildValueType> generator(*model.get());
-                    generator.generateObservations(10, 10);
+                STORM_PRINT("ROUNDS ACTIVATED" << std::endl);
+                storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*model.get());
+                auto observations = generator.generateObservations(1000, 10);
+
+                storm::robust::ObservationSparseModelBuilder<uint64_t, uint64_t, BuildValueType> builder(observations);
+                auto mdp = builder.buildMdp();
+                mdp.printModelInformationToStream(std::cout);
+
+                storm::robust::AmbiguitySetBuilder<uint64_t, uint64_t, BuildValueType> ambiguitySetBuilder(observations);
+                ambiguitySetBuilder.calculateAmbiguitySet();
             }
         }
         
