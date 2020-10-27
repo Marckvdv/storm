@@ -174,6 +174,21 @@ namespace storm {
                 std::string getExplicitIMCAFilename() const;
 
                 /*!
+                 * Retrieves whether the observations input option was set.
+                 *
+                 * @return True if the observations input option was set.
+                 */
+                bool isObservationsInputSet() const;
+
+                /*!
+                 * Retrieves the name of the file that contains the JANI model specification if the model was given
+                 * using the JANI input option.
+                 *
+                 * @return The name of the file that contains the JANI model specification.
+                 */
+                std::string getObservationsInputFilename() const;
+
+                /*!
                  * Retrieves whether the PRISM language option was set.
                  *
                  * @return True if the PRISM input option was set.
@@ -362,6 +377,7 @@ namespace storm {
                 static const std::string explicitDrnOptionShortName;
                 static const std::string explicitImcaOptionName;
                 static const std::string explicitImcaOptionShortName;
+                static const std::string observationsInputOptionName;
                 static const std::string prismInputOptionName;
                 static const std::string janiInputOptionName;
                 static const std::string prismToJaniOptionName;

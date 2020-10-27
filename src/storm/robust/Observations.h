@@ -38,7 +38,7 @@ namespace storm {
             Trace(State initialState);
             void addTransition(Transition<State, Action, Reward> transition);
             void writeToFile(std::ostream& output) const;
-            State getInitialState();
+            State getInitialState() const;
             std::vector<Transition<State, Action, Reward>>& getTransitions();
         };
 

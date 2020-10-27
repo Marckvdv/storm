@@ -53,7 +53,7 @@ namespace storm {
         }
 
         template<typename State, typename Action, typename Reward>
-        State Trace<State, Action, Reward>::getInitialState() {
+        State Trace<State, Action, Reward>::getInitialState() const {
             return initialState;
         }
 
@@ -78,7 +78,7 @@ namespace storm {
 
         template<typename State, typename Action, typename Reward>
         void Observations<State, Action, Reward>::writeToFile(std::ostream& output) const {
-            for (int i = 0; i < traces.size(); ++i) {
+            for (size_t i = 0; i < traces.size(); ++i) {
                 output << "Trace " << i << std::endl;
                 traces[i].writeToFile(output);
             }

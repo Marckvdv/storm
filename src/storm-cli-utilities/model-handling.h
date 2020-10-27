@@ -54,6 +54,8 @@
 
 #include "storm/robust/ObservationGenerator.h"
 #include "storm/robust/ObservationSparseModelBuilder.h"
+#include "storm/robust/ObservationsParser.h"
+#include "storm/robust/JaniFromObservationsBuilder.h"
 #include "storm/robust/AmbiguitySet.h"
 
 namespace storm {
@@ -95,6 +97,15 @@ namespace storm {
                 }
                 modelParsingWatch.stop();
                 STORM_PRINT("Time for model input parsing: " << modelParsingWatch << "." << std::endl << std::endl);
+            }
+
+            if (ioSettings.isObservationsInputSet()) {
+                auto filepath = ioSettings.getObservationsInputFilename();
+                STORM_PRINT("Loading observations from '" << filepath << "'" << std::endl);
+                auto observations = storm::robust::ObservationsParser<double>::parse(filepath);
+                storm::robust::JaniFromObservationsBuilder<uint64_t, uint64_t, double> builder(observations);
+                auto mdp = builder.build();
+                input.model = mdp;
             }
         }
         

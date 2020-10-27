@@ -32,6 +32,7 @@ namespace storm {
             const std::string IOSettings::explicitDrnOptionShortName = "drn";
             const std::string IOSettings::explicitImcaOptionName = "explicit-imca";
             const std::string IOSettings::explicitImcaOptionShortName = "imca";
+            const std::string IOSettings::observationsInputOptionName = "observations";
             const std::string IOSettings::prismInputOptionName = "prism";
             const std::string IOSettings::janiInputOptionName = "jani";
             const std::string IOSettings::prismToJaniOptionName = "prism2jani";
@@ -77,6 +78,8 @@ namespace storm {
                 this->addOption(storm::settings::OptionBuilder(moduleName, explicitImcaOptionName, false, "Parses the model given in the IMCA format.").setShortName(explicitImcaOptionShortName)
                                 .addArgument(storm::settings::ArgumentBuilder::createStringArgument("imca filename", "The name of the imca file containing the model.").addValidatorString(ArgumentValidatorFactory::createExistingFileValidator()).build())
                                 .build());
+                this->addOption(storm::settings::OptionBuilder(moduleName, observationsInputOptionName, false, "Parses the model given in the observations format.")
+                                .addArgument(storm::settings::ArgumentBuilder::createStringArgument("filename", "The name of the file from which to read the observations input.").addValidatorString(ArgumentValidatorFactory::createExistingFileValidator()).build()).build());
                 this->addOption(storm::settings::OptionBuilder(moduleName, prismInputOptionName, false, "Parses the model given in the PRISM format.")
                                 .addArgument(storm::settings::ArgumentBuilder::createStringArgument("filename", "The name of the file from which to read the PRISM input.").addValidatorString(ArgumentValidatorFactory::createExistingFileValidator()).build()).build());
                 this->addOption(storm::settings::OptionBuilder(moduleName, janiInputOptionName, false, "Parses the model given in the JANI format.")
@@ -206,6 +209,14 @@ namespace storm {
 
             std::string IOSettings::getExplicitIMCAFilename() const {
                 return this->getOption(explicitImcaOptionName).getArgumentByName("imca filename").getValueAsString();
+            }
+
+            bool IOSettings::isObservationsInputSet() const {
+                return this->getOption(observationsInputOptionName).getHasOptionBeenSet();
+            }
+
+            std::string IOSettings::getObservationsInputFilename() const {
+                return this->getOption(observationsInputOptionName).getArgumentByName("filename").getValueAsString();
             }
 
             bool IOSettings::isPrismInputSet() const {
