@@ -2,6 +2,7 @@
 
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/adapters/RationalNumberAdapter.h"
+#include "storm/adapters/JsonAdapter.h"
 
 namespace storm {
     namespace robust {
@@ -17,7 +18,17 @@ namespace storm {
         }
 
         template<typename State, typename Action, typename Reward>
+        State const& Transition<State, Action, Reward>::getState() const {
+            return state;
+        }
+
+        template<typename State, typename Action, typename Reward>
         Action& Transition<State, Action, Reward>::getAction() {
+            return action;
+        }
+
+        template<typename State, typename Action, typename Reward>
+        Action const& Transition<State, Action, Reward>::getAction() const {
             return action;
         }
 
@@ -27,10 +38,8 @@ namespace storm {
         }
 
         template<typename State, typename Action, typename Reward>
-        void Transition<State, Action, Reward>::writeToFile(std::ostream& output) const {
-                output
-                    << "[" << action << "] --> " << state << " (" << reward
-                    << ")" << std::endl;
+        Reward const& Transition<State, Action, Reward>::getReward() const {
+            return reward;
         }
 
         // Trace
@@ -45,20 +54,17 @@ namespace storm {
         }
 
         template<typename State, typename Action, typename Reward>
-        void Trace<State, Action, Reward>::writeToFile(std::ostream& output) const {
-            output << "Initial state: " << initialState << std::endl;
-            for (auto const& t : transitions) {
-                t.writeToFile(output);
-            }
-        }
-
-        template<typename State, typename Action, typename Reward>
         State Trace<State, Action, Reward>::getInitialState() const {
             return initialState;
         }
 
         template<typename State, typename Action, typename Reward>
         std::vector<Transition<State, Action, Reward>>& Trace<State, Action, Reward>::getTransitions() {
+            return transitions;
+        }
+
+        template<typename State, typename Action, typename Reward>
+        std::vector<Transition<State, Action, Reward>> const& Trace<State, Action, Reward>::getTransitions() const {
             return transitions;
         }
 
@@ -78,24 +84,29 @@ namespace storm {
 
         template<typename State, typename Action, typename Reward>
         void Observations<State, Action, Reward>::writeToFile(std::ostream& output) const {
-            for (size_t i = 0; i < traces.size(); ++i) {
-                output << "Trace " << i << std::endl;
-                traces[i].writeToFile(output);
+            using json = storm::json<double>;
+
+            auto result = json::array();
+
+            for (auto const& trace : traces) {
+                json traceJson;
+                traceJson["initial"] = std::to_string(trace.getInitialState());
+                
+                auto transitionsJson = json::array();
+                for (auto const& transition : trace.getTransitions()) {
+                    auto transitionJson = json::array();
+                    transitionJson += std::to_string(transition.getAction());
+                    //transitionJson += std::to_string(transition.getReward());
+                    transitionJson += 0; // TODO rewards
+                    transitionJson += std::to_string(transition.getState());
+
+                    transitionsJson += transitionJson;
+                }
+                traceJson["transitions"] = transitionsJson;
+                result += traceJson;
             }
-        }
 
-        template<typename State, typename Action, typename Reward>
-        Observations<State, Action, Reward> Observations<State, Action, Reward>::readFromFile(std::istream& input) {
-            if (!readExact(input, "Trace"))
-                throw 1;
-
-            std::vector<Trace<State, Action, Reward>> traces;
-            while (input.good()) {
-                //auto trace = Trace<State, Action, Reward>::readFromFile(input);
-                //traces.push_back(trace);
-            }
-
-            return Observations(traces);
+            output << result << std::endl;
         }
 
         template<typename State, typename Action, typename Reward>

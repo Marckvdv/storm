@@ -7,14 +7,6 @@
 
 namespace storm {
     namespace robust {
-        static bool readExact(std::istream& input, std::string toRead) {
-            // TODO unicode
-            std::vector<char> buffer(toRead.size());
-            input.read(buffer.data(), toRead.size());
-
-            return std::memcmp(toRead.c_str(), buffer.data(), toRead.size()) == 0;
-        }
-
         template<typename State, typename Action, typename Reward>
         class Transition {
             State state;
@@ -24,8 +16,11 @@ namespace storm {
         public:
             Transition(State state, Action action, Reward reward);
             State& getState();
+            State const& getState() const;
             Action& getAction();
+            Action const& getAction() const;
             Reward& getReward();
+            Reward const& getReward() const;
             void writeToFile(std::ostream& output) const;
         };
 
@@ -40,6 +35,7 @@ namespace storm {
             void writeToFile(std::ostream& output) const;
             State getInitialState() const;
             std::vector<Transition<State, Action, Reward>>& getTransitions();
+            std::vector<Transition<State, Action, Reward>> const& getTransitions() const;
         };
 
         template<typename State, typename Action, typename Reward>
@@ -52,7 +48,6 @@ namespace storm {
             Observations(std::vector<TraceType> traces);
             void addTrace(TraceType trace);
             void writeToFile(std::ostream& output) const;
-            static Observations<State, Action, Reward> readFromFile(std::istream& input);
             std::vector<TraceType>& getTraces();
         };
     }

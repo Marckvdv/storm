@@ -62,7 +62,6 @@ namespace storm {
                 newTrace(steps);
             }
 
-            observations.writeToFile(std::cout);
             return observations;
         }
 

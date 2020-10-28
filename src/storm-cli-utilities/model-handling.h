@@ -1176,20 +1176,22 @@ namespace storm {
                 }
             }
 
-            STORM_PRINT("ROUNDS: " << robustSettings.rounds() << std::endl);
-            //auto model = input.model;
+            std::cout << "ROUNDS: " << robustSettings.rounds() << std::endl;
+            std::cout << "RUNS: " << robustSettings.runs() << std::endl;
             auto model = storm::api::buildSparseModel<BuildValueType>(input.model.get(), storm::builder::BuilderOptions());
-            if (robustSettings.rounds() > 0) {
-                STORM_PRINT("ROUNDS ACTIVATED" << std::endl);
+            if (robustSettings.generateObservations()) {
                 storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*model.get());
-                auto observations = generator.generateObservations(1000, 10);
+                auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds());
+                observations.writeToFile(std::cerr);
 
+                /*
                 storm::robust::ObservationSparseModelBuilder<uint64_t, uint64_t, BuildValueType> builder(observations);
                 auto mdp = builder.buildMdp();
-                mdp.printModelInformationToStream(std::cout);
+                mdp.printModelInformationToStream(std::cerr);
 
                 storm::robust::AmbiguitySetBuilder<uint64_t, uint64_t, BuildValueType> ambiguitySetBuilder(observations);
                 ambiguitySetBuilder.calculateAmbiguitySet();
+                */
             }
         }
         

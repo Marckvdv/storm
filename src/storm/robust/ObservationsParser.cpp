@@ -68,8 +68,6 @@ namespace storm {
                 }
                 observations.addTrace(newTrace);
             }
-            std::cout << "Read the following observations:" << std::endl;
-            observations.writeToFile(std::cout);
 
             return observations;
         }

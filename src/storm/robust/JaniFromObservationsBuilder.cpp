@@ -122,24 +122,20 @@ namespace storm {
             for (auto const& t1 : transitions) {
                 auto &s1 = t1.first;
                 auto& v1 = t1.second;
-
-                std::vector<std::pair<uint64_t, storm::expressions::Expression>> destinationsAndProbabilities;
                 uint64_t beginLoc = automaton.getLocationIndex(states.at(s1).getName());
 
-                uint64_t total = 0;
                 for (auto const& t2 : v1) {
                     auto action = t2.first;
                     auto &v2 = t2.second;
+
+                    uint64_t total = 0;
                     for (auto const& t3 : v2) {
                         auto s2 = t3.first;
                         uint64_t amount = t3.second;
                         total += amount;
                     }
-                }
 
-                for (auto const& t2 : v1) {
-                    auto action = t2.first;
-                    auto &v2 = t2.second;
+                    std::vector<std::pair<uint64_t, storm::expressions::Expression>> destinationsAndProbabilities;
                     for (auto const& t3 : v2) {
                         auto s2 = t3.first;
                         uint64_t amount = t3.second;
@@ -151,10 +147,10 @@ namespace storm {
 
                     uint64_t actionIndex = model.getActionIndex(actions.at(action).getName());
                     auto templateEdge = std::make_shared<storm::jani::TemplateEdge>(exp.boolean(true));
-                    automaton.registerTemplateEdge(templateEdge);
                     for (size_t i = 0; i < v2.size(); ++i) {
                         templateEdge->addDestination(storm::jani::TemplateEdgeDestination());
                     }
+                    automaton.registerTemplateEdge(templateEdge);
 
                     storm::jani::Edge edge(beginLoc, actionIndex, boost::none, templateEdge, destinationsAndProbabilities);
                     automaton.addEdge(edge);
@@ -164,7 +160,6 @@ namespace storm {
 
             for (auto const& trace : observations.getTraces()) {
                 auto initial = trace.getInitialState();
-                std::cout << "Adding initial: " << initial << std::endl;
                 automaton.addInitialLocation(states.at(initial).getName());
             }
 
