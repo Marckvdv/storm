@@ -5,6 +5,7 @@
 #include "storm/models/sparse/Model.h"
 #include "storm/utility/random.h"
 #include "storm/robust/Observations.h"
+#include "storm/robust/Policy.h"
 
 namespace storm {
     namespace robust {
@@ -15,7 +16,7 @@ namespace storm {
             typedef Observations<State, Action, Reward> ObservationsType;
 
         public:
-            ObservationGenerator(ModelType const& model);
+            ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType> const& policy);
             Action randomAction();
             TransitionType step(Action action);
             TransitionType randomStep();
@@ -26,6 +27,7 @@ namespace storm {
             Observations<State, Action, Reward> observations;
             storm::utility::RandomProbabilityGenerator<ValueType> generator;
             ModelType const& model;
+            Policy<State, Action, ValueType> const& policy;
         };
     }
 }

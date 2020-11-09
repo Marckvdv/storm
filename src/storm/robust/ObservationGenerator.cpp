@@ -5,8 +5,9 @@
 namespace storm {
     namespace robust {
         TEMPLATE_DEF
-        ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::ObservationGenerator(ModelType const& model) : model(model),
-            observations(Observations<State, Action, Reward>()) {
+        ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType> const& policy) :
+            model(model), observations(Observations<State, Action, Reward>()),
+            policy(policy) {
         }
 
         TEMPLATE_DEF

@@ -1,5 +1,27 @@
 #include "storm/robust/AmbiguitySet.h"
 
+#include "storm/robust/AmbiguityArea.h"
+#include "storm/utility/constants.h"
+
+template <typename ValueType>
+storm::storage::SparseMatrix<ValueType> zeroMatrix(size_t rows, size_t columns) {
+    storm::storage::SparseMatrixBuilder<ValueType> builder(rows, columns);
+    return builder.build();
+}
+
+
+template <typename ValueType>
+std::vector<ValueType> zeroVector(size_t rows) {
+    return std::vector<ValueType>(rows, storm::utility::zero<ValueType>());
+}
+
+template <typename ValueType>
+std::vector<ValueType> oneVector(size_t rows, size_t i) {
+    std::vector<ValueType> v(rows, storm::utility::zero<ValueType>());
+    v[i] = storm::utility::one<ValueType>();
+    return v;
+}
+
 namespace storm {
     namespace robust {
         template<typename State, typename Action, typename Reward>
@@ -8,22 +30,15 @@ namespace storm {
         }
 
         template<typename State, typename Action, typename Reward>
-        void AmbiguitySetBuilder<State, Action, Reward>::calculateAmbiguitySet() {
+        AmbiguitySet<storm::RationalNumber, State, Action> AmbiguitySetBuilder<State, Action, Reward>::calculateAmbiguitySet() {
             State s;
             Action a;
             auto transitions = ObservationSparseModelBuilder<State, Action, Reward>::calculateTransitionsMap(s, a);
-            calculateAmbiguitySet(transitions);
+            return calculateAmbiguitySet(transitions);
         }
 
         template<typename State, typename Action, typename Reward>
-        struct cmp {
-            bool operator()(const std::tuple<State, Action, Reward>& a, const std::tuple<State, Action, Reward>& b) const {
-                return a <= b;
-            }
-        };
-
-        template<typename State, typename Action, typename Reward>
-        void AmbiguitySetBuilder<State, Action, Reward>::calculateAmbiguitySet(TransitionsMap transitions) {
+        AmbiguitySet<storm::RationalNumber, State, Action> AmbiguitySetBuilder<State, Action, Reward>::calculateAmbiguitySet(TransitionsMap transitions) {
             typedef std::tuple<State, Action, State> T;
             // 1+2] Calculate \mu and \xi
             auto comp = [](const T& a, const T& b) { return a <= b; };
@@ -37,13 +52,13 @@ namespace storm {
                 for (auto const& t2 : v1) {
                     auto action = t2.first;
                     auto &v2 = t2.second;
-                    bool first = true;
 
                     auto total = 0;
                     for (auto const& t3 : v2) {
                         total += t3.second;
                     }
 
+                    bool first = true;
                     for (auto const& t3 : v2) {
                         if (first) {
                             first = false;
@@ -66,12 +81,59 @@ namespace storm {
             std::cout << "q=" << q << std::endl;
 
             // 3] Structural ambiguity set
+            std::vector<AmbiguityArea<storm::RationalNumber>> intersections;
+            // >= 0
+            for (size_t i = 0; i < q; ++i) {
+                AmbiguityArea<storm::RationalNumber> positive(zeroMatrix<storm::RationalNumber>(q, q), oneVector<storm::RationalNumber>(q, i), 0);
+                intersections.push_back(positive);
+            }
+
+            for (auto const& t1 : transitions) {
+                auto s1 = t1.first;
+                auto& v1 = t1.second;
+                for (auto const& t2 : v1) {
+                    auto action = t2.first;
+                    auto &v2 = t2.second;
+
+                    auto vec = zeroVector<storm::RationalNumber>(q);
+                    bool first = true;
+                    for (auto const& t3 : v2) {
+                        if (first) {
+                            first = false;
+                            continue;
+                        }
+
+                        auto s2 = t3.first;
+                        auto amount = t3.second;
+
+                        vec[index_map[std::make_tuple(s1, action, s2)]] = storm::utility::one<storm::RationalNumber>();
+                    }
+
+                    AmbiguityArea<storm::RationalNumber> area(zeroMatrix<storm::RationalNumber>(q, q), vec, 0);
+                    intersections.push_back(area);
+                }
+            }
+
 
             // 4] Quadratic approx
+            
+            return AmbiguitySet<storm::RationalNumber, State, Action>(intersections);
+        }
+
+        template <typename ValueType, typename State, typename Action>
+        AmbiguitySet<ValueType, State, Action>::AmbiguitySet(std::vector<AmbiguityArea<ValueType>> intersections, Rectangularity rectangularity, std::map<std::pair<State, Action>, std::vector<ValueType>> constantTerm, std::map<std::pair<State, Action>, storm::storage::SparseMatrix<ValueType>> coefficientTerm) :
+            intersections(intersections), rectangularity(rectangularity),
+            constantTerm(constantTerm), coefficientTerm(coefficientTerm) {
+
+            if (intersections.size() > 0) {
+                dimensions = intersections[0].vector.size();
+            }
         }
 
         template class AmbiguitySetBuilder<uint64_t, uint64_t, double>;
         template class AmbiguitySetBuilder<uint64_t, uint64_t, storm::RationalNumber>;
         template class AmbiguitySetBuilder<uint64_t, uint64_t, storm::RationalFunction>;
+
+        template class AmbiguitySet<storm::RationalNumber, uint64_t, uint64_t>;
     }
 }

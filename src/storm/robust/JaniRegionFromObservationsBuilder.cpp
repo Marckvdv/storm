@@ -1,14 +1,16 @@
-#include "JaniFromObservationsBuilder.h"
+#include "JaniRegionFromObservationsBuilder.h"
 
 #include "storm/storage/jani/Automaton.h"
 #include "storm/storage/jani/ModelType.h"
 #include "storm/storage/jani/Location.h"
 #include "storm/storage/expressions/ExpressionManager.h"
+#include "storm/storage/expressions/RationalFunctionToExpression.h"
 #include "storm/storage/jani/Assignment.h"
 #include "storm/storage/jani/Edge.h"
 #include "storm/storage/jani/TemplateEdge.h"
 
 #include "storm-pars/storage/ParameterRegion.h"
+#include "storm-pars/utility/parametric.h"
 
 #include <string>
 #include <unordered_map>
@@ -17,13 +19,13 @@
 namespace storm {
     namespace robust {
         template <typename State, typename Action, typename Reward>
-        JaniFromObservationsBuilder<State, Action, Reward>::JaniFromObservationsBuilder(Observations<State, Action, Reward> observations) :
+        JaniRegionFromObservationsBuilder<State, Action, Reward>::JaniRegionFromObservationsBuilder(Observations<State, Action, Reward> observations) :
             observations(observations) {
         }
 
 #define TransitionsMap std::map<State, std::map<Action, std::map<State, uint64_t>>>
         template<typename State, typename Action, typename Reward>
-        TransitionsMap JaniFromObservationsBuilder<State, Action, Reward>::calculateTransitionsMap(State& highestState, Action& highestAction) {
+        TransitionsMap JaniRegionFromObservationsBuilder<State, Action, Reward>::calculateTransitionsMap(State& highestState, Action& highestAction) {
             TransitionsMap transitions;
             auto addTransition = [](State s1, Action action, State s2, auto& map) {
                 auto it = map.find(s1);
@@ -70,11 +72,13 @@ namespace storm {
 
 
         template <typename State, typename Action, typename Reward>
-        storm::jani::Model JaniFromObservationsBuilder<State, Action, Reward>::build() {
-            const auto name = std::string("mainModel");
-            const auto mt = storm::jani::ModelType::MDP;
+        std::pair<storm::jani::Model, storm::storage::ParameterRegion<storm::RationalFunction>> JaniRegionFromObservationsBuilder<State, Action, Reward>::build() {
+            /*
+            storm::utility::parametric::Valuation<storm::RationalFunction> lowerBound;
+            storm::utility::parametric::Valuation<storm::RationalFunction> upperBound;
+            uint64_t variableCount = 0;
 
-            storm::jani::Model model(name, mt);
+            storm::jani::Model model("mainModel", storm::jani::ModelType::MDP);
             auto& exp = model.getExpressionManager();
             storm::jani::Automaton automaton("mainAutomaton", exp.declareIntegerVariable("pc"));
 
@@ -122,34 +126,58 @@ namespace storm {
             }
 
             // Next, add all edges
+            //
+            // Loop over begin states
             for (auto const& t1 : transitions) {
                 auto &s1 = t1.first;
                 auto& v1 = t1.second;
                 uint64_t beginLoc = automaton.getLocationIndex(states.at(s1).getName());
 
+                // Loop over actions
                 for (auto const& t2 : v1) {
                     auto action = t2.first;
                     auto &v2 = t2.second;
 
                     uint64_t total = 0;
+                    // Loop over end states
                     for (auto const& t3 : v2) {
                         auto s2 = t3.first;
                         uint64_t amount = t3.second;
                         total += amount;
                     }
 
+                    uint64_t startingVariable = variableCount;
                     std::vector<std::pair<uint64_t, storm::expressions::Expression>> destinationsAndProbabilities;
+                    size_t uniqueStateCount = v2.size();
+                    size_t currentState = 0;
+                    // Loop over end states
                     for (auto const& t3 : v2) {
                         auto s2 = t3.first;
                         uint64_t amount = t3.second;
-
                         uint64_t endLoc = automaton.getLocationIndex(states.at(s2).getName());
-                        auto prob = exp.rational(storm::RationalNumber(amount) / total);
-                        destinationsAndProbabilities.push_back({endLoc, prob});
+
+                        // Check if it's the last state
+                        if (currentState+1 != uniqueStateCount) {
+                            double lb;
+                            double ub;
+                            std::tie(lowerBound, upperBound) = calculateLowerUpperBound(amount, total, 0.95);
+
+                            storm::RationalFunctionVariable newVariable(variableCount++);
+                            storm::RationalFunction fun(newVariable);
+                            auto expr = storm::expressions::RationalFunctionToExpression<storm::RationalFunction>(exp).toExpression(fun);
+//                            auto prob = exp.rational(storm::RationalNumber(amount) / total);
+                            destinationsAndProbabilities.push_back({endLoc, expr});
+                            lowerBound[newVariable] = storm::RationalFunction(storm::RationalNumber(lb));
+                            upperBound[newVariable] = storm::RationalFunction(storm::RationalNumber(ub));
+                        } else {
+                        }
+
+                        currentState++;
                     }
 
                     uint64_t actionIndex = model.getActionIndex(actions.at(action).getName());
                     auto templateEdge = std::make_shared<storm::jani::TemplateEdge>(exp.boolean(true));
+                    // Loop over end states
                     for (size_t i = 0; i < v2.size(); ++i) {
                         templateEdge->addDestination(storm::jani::TemplateEdgeDestination());
                     }
@@ -169,9 +197,21 @@ namespace storm {
             model.addAutomaton(automaton);
             model.setStandardSystemComposition();
             model.finalize();
-            return model;
+
+            storm::storage::ParameterRegion<storm::RationalFunction> region(lowerBound, upperBound);
+            return std::make_pair(model, region);
+            */
         }
 
-        template class JaniFromObservationsBuilder<uint64_t, uint64_t, double>;
+        template <typename State, typename Action, typename Reward>
+        std::pair<double, double> JaniRegionFromObservationsBuilder<State, Action, Reward>::calculateLowerUpperBound(uint64_t part, uint64_t total, double confidence) {
+            double lower = boost::math::ibeta_inv(part, total-part,   confidence/2);
+            double upper = boost::math::ibeta_inv(part, total-part, 1-confidence/2);
+
+            return std::make_pair(lower, upper);
+        }
+
+
+        template class JaniRegionFromObservationsBuilder<uint64_t, uint64_t, double>;
     }
 }

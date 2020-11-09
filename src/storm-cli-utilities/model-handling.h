@@ -56,7 +56,11 @@
 #include "storm/robust/ObservationSparseModelBuilder.h"
 #include "storm/robust/ObservationsParser.h"
 #include "storm/robust/JaniFromObservationsBuilder.h"
+#include "storm/robust/JaniRegionFromObservationsBuilder.h"
 #include "storm/robust/AmbiguitySet.h"
+#include "storm/robust/RobustPolicyEvaluator.h"
+#include "storm/robust/Policy.h"
+#include "storm/robust/UniformPolicy.h"
 
 namespace storm {
     namespace cli {
@@ -1178,9 +1182,18 @@ namespace storm {
 
             std::cout << "ROUNDS: " << robustSettings.rounds() << std::endl;
             std::cout << "RUNS: " << robustSettings.runs() << std::endl;
-            auto model = storm::api::buildSparseModel<BuildValueType>(input.model.get(), storm::builder::BuilderOptions());
+            auto model = input.model.get();
+            model = model.toJani();
+            auto sparseModel = storm::api::buildSparseModel<BuildValueType>(model, storm::builder::BuilderOptions());
             if (robustSettings.generateObservations()) {
-                storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*model.get());
+                auto numActions = model.asJaniModel().getActions().size();
+                std::vector<uint64_t> actions;
+                for (uint64_t i = 0; i < numActions; ++i) {
+                    actions.push_back(i);
+                }
+                storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType> policy(actions);
+                storm::robust::Policy<uint64_t, uint64_t, BuildValueType>& p = policy;
+                storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*sparseModel.get(), p);
                 auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds());
                 observations.writeToFile(std::cerr);
 
