@@ -16,6 +16,10 @@ namespace storm {
                 int rounds() const;
                 int runs() const;
                 bool generateObservations() const;
+                bool isShedulerSet() const;
+                std::string getSchedulerInputFilename() const;
+                bool isObservationsExportSet() const;
+                std::string getObservationsExportFilename() const;
 
                 // The name of the module.
                 static const std::string moduleName;
@@ -25,6 +29,8 @@ namespace storm {
                 static const std::string roundsName;
                 static const std::string runsName;
                 static const std::string generateObservationsName;
+                static const std::string schedulerName;
+                static const std::string observationsExportName;
             };
 
         } // namespace modules

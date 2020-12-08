@@ -61,6 +61,8 @@
 #include "storm/robust/RobustPolicyEvaluator.h"
 #include "storm/robust/Policy.h"
 #include "storm/robust/UniformPolicy.h"
+#include "storm/robust/StationaryPolicy.h"
+#include "storm/robust/UncertainMdpBuilder.h"
 
 namespace storm {
     namespace cli {
@@ -1185,26 +1187,37 @@ namespace storm {
             auto model = input.model.get();
             model = model.toJani();
             auto sparseModel = storm::api::buildSparseModel<BuildValueType>(model, storm::builder::BuilderOptions());
+            std::ofstream f("out.dot");
+            sparseModel->writeDotToStream(f);
             if (robustSettings.generateObservations()) {
-                auto numActions = model.asJaniModel().getActions().size();
-                std::vector<uint64_t> actions;
-                for (uint64_t i = 0; i < numActions; ++i) {
-                    actions.push_back(i);
+                storm::robust::Policy<uint64_t, uint64_t, BuildValueType>* policy;
+                if (robustSettings.isShedulerSet()) {
+                    std::cout << "Using specified scheduler" << std::endl;
+                    auto path = robustSettings.getSchedulerInputFilename();
+                    policy = new storm::robust::StationaryPolicy<uint64_t, uint64_t, BuildValueType>(path);
+                } else {
+                    std::cout << "Using uniform scheduler" << std::endl;
+                    auto numActions = model.asJaniModel().getActions().size();
+                    std::vector<uint64_t> actions;
+                    for (uint64_t i = 0; i < numActions; ++i) {
+                        actions.push_back(i);
+                    }
+                    policy = new storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType>(actions);
                 }
-                storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType> policy(actions);
-                storm::robust::Policy<uint64_t, uint64_t, BuildValueType>& p = policy;
-                storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*sparseModel.get(), p);
+                storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*sparseModel.get(), *policy);
                 auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds());
-                observations.writeToFile(std::cerr);
 
-                /*
-                storm::robust::ObservationSparseModelBuilder<uint64_t, uint64_t, BuildValueType> builder(observations);
-                auto mdp = builder.buildMdp();
-                mdp.printModelInformationToStream(std::cerr);
+                if (robustSettings.isObservationsExportSet()) {
+                    std::ofstream o(robustSettings.getObservationsExportFilename());
+                    observations.writeToFile(o);
+                } else {
+                    observations.writeToFile(std::cout);
+                }
 
-                storm::robust::AmbiguitySetBuilder<uint64_t, uint64_t, BuildValueType> ambiguitySetBuilder(observations);
-                ambiguitySetBuilder.calculateAmbiguitySet();
-                */
+                storm::robust::UncertainMdpBuilder<uint64_t, uint64_t, BuildValueType, BuildValueType> builder;
+                builder.processObservations(observations);
+
+                delete policy;
             }
         }
         

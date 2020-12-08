@@ -114,6 +114,11 @@ namespace storm {
             return traces;
         }
 
+        template<typename State, typename Action, typename Reward>
+        std::vector<Trace<State, Action, Reward>> const& Observations<State, Action, Reward>::getTraces() const {
+            return traces;
+        }
+
         template class Trace<uint64_t, uint64_t, double>;
         template class Trace<uint64_t, uint64_t, storm::RationalFunction>;
         template class Trace<uint64_t, uint64_t, storm::RationalNumber>;

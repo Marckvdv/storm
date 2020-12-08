@@ -11,7 +11,7 @@ namespace storm {
 
             // Override
             void addHistory(State state);
-            Action getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen);
+            Action getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state);
         private:
             std::vector<Action> actions;
         };

@@ -15,7 +15,7 @@ namespace storm {
         }
 
         template <typename State, typename Action, typename ValueType>
-        Action UniformPolicy<State, Action, ValueType>::getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen) {
+        Action UniformPolicy<State, Action, ValueType>::getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state) {
             uint64_t index = gen.random_uint(0, actions.size() - 1);
             return actions[index];
         }

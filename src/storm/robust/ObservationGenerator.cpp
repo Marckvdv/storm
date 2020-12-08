@@ -5,7 +5,7 @@
 namespace storm {
     namespace robust {
         TEMPLATE_DEF
-        ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType> const& policy) :
+        ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType>& policy) :
             model(model), observations(Observations<State, Action, Reward>()),
             policy(policy) {
         }
@@ -22,7 +22,9 @@ namespace storm {
             ValueType probability = generator.random();
             //ValueType probability = storm::utility::zero<ValueType>();
             ValueType sum = storm::utility::zero<ValueType>();
-            for (auto const& entry : model.getTransitionMatrix().getRow(row)) {
+            auto transitions = model.getTransitionMatrix();
+            auto matrixRow = transitions.getRow(row);
+            for (auto const& entry : matrixRow) {
                 sum += entry.getValue();
 
                 // probability is below sum, we take this transition
@@ -38,7 +40,8 @@ namespace storm {
 
         TEMPLATE_DEF
         Transition<State, Action, Reward> ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::randomStep() {
-            return step(randomAction());
+            auto action = policy.getNextAction(generator, currentState);
+            return step(action);
         }
 
         TEMPLATE_DEF
@@ -48,9 +51,12 @@ namespace storm {
             Trace<State, Action, Reward> trace(initialState);
             currentState = initialState;
 
+            policy.addHistory(currentState);
+
             for (int i = 0; i < steps; ++i) {
                 auto newTransition = randomStep();
                 currentState = newTransition.getState();
+                policy.addHistory(currentState);
                 trace.addTransition(newTransition);
             }
 

@@ -49,6 +49,7 @@ namespace storm {
             void addTrace(TraceType trace);
             void writeToFile(std::ostream& output) const;
             std::vector<TraceType>& getTraces();
+            std::vector<TraceType> const& getTraces() const;
         };
     }
 }

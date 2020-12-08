@@ -16,7 +16,7 @@ namespace storm {
             typedef Observations<State, Action, Reward> ObservationsType;
 
         public:
-            ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType> const& policy);
+            ObservationGenerator(ModelType const& model, Policy<State, Action, ValueType>& policy);
             Action randomAction();
             TransitionType step(Action action);
             TransitionType randomStep();
@@ -27,7 +27,7 @@ namespace storm {
             Observations<State, Action, Reward> observations;
             storm::utility::RandomProbabilityGenerator<ValueType> generator;
             ModelType const& model;
-            Policy<State, Action, ValueType> const& policy;
+            Policy<State, Action, ValueType>& policy;
         };
     }
 }

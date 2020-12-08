@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Policy.h"
+#include "storm/adapters/JsonAdapter.h"
 
 #include <unordered_map>
 
@@ -12,10 +13,14 @@ namespace storm {
 
         public:
             StationaryPolicy(PolicyData policy);
+            StationaryPolicy(storm::json<double> data);
+            StationaryPolicy(std::string path);
+
+            void initFromJson(storm::json<double> data);
 
             // Override
             void addHistory(State state);
-            Action getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen);
+            Action getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state);
         private:
             PolicyData policyData;
         };
