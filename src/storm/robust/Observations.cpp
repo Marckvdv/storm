@@ -82,19 +82,23 @@ namespace storm {
             traces.push_back(trace);
         }
 
+        // Write observations to an output stream
         template<typename State, typename Action, typename Reward>
         void Observations<State, Action, Reward>::writeToFile(std::ostream& output) const {
             using json = storm::json<double>;
 
+            // Transform the observations into an JSON array
             auto result = json::array();
-
             for (auto const& trace : traces) {
                 json traceJson;
                 traceJson["initial"] = std::to_string(trace.getInitialState());
-                
+
                 auto transitionsJson = json::array();
                 for (auto const& transition : trace.getTransitions()) {
                     auto transitionJson = json::array();
+
+                    // Append transition components to the `transitionJson`
+                    // array.
                     transitionJson += std::to_string(transition.getAction());
                     //transitionJson += std::to_string(transition.getReward());
                     transitionJson += 0; // TODO rewards
@@ -106,6 +110,7 @@ namespace storm {
                 result += traceJson;
             }
 
+            // Write the resulting JSON as a string to the output stream
             output << result << std::endl;
         }
 

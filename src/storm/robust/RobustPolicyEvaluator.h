@@ -5,6 +5,7 @@
 
 namespace storm {
     namespace robust {
+        // TODO Robust policy evaluator based on the given ambiguity set
         template <typename ValueType, typename State, typename Action>
         class RobustPolicyEvaluator {
             AmbiguitySet<ValueType, State, Action> ambiguitySet;

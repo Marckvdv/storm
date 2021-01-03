@@ -17,14 +17,20 @@
 namespace storm {
     namespace robust {
         template <typename State, typename Action, typename Reward>
-        JaniFromObservationsBuilder<State, Action, Reward>::JaniFromObservationsBuilder(Observations<State, Action, Reward> observations) :
+        JaniFromObservationsBuilder<State, Action, Reward>::JaniFromObservationsBuilder(
+                Observations<State, Action, Reward> observations) :
             observations(observations) {
         }
 
 #define TransitionsMap std::map<State, std::map<Action, std::map<State, uint64_t>>>
         template<typename State, typename Action, typename Reward>
-        TransitionsMap JaniFromObservationsBuilder<State, Action, Reward>::calculateTransitionsMap(State& highestState, Action& highestAction) {
+        TransitionsMap JaniFromObservationsBuilder<State, Action, Reward>::calculateTransitionsMap(
+                State& highestState, Action& highestAction) {
+
             TransitionsMap transitions;
+            // Add transition to the transition map. If it is not yet present
+            // it is added with count 1. If already present the count is
+            // increased by 1 instead.
             auto addTransition = [](State s1, Action action, State s2, auto& map) {
                 auto it = map.find(s1);
                 if (it == map.end()) {
@@ -49,6 +55,7 @@ namespace storm {
                 map3[s2] += 1;
             };
 
+            // Add all transitions observed into the transition map.
             for (auto &trace : observations.getTraces()) {
                 State currentState = trace.getInitialState();
 
@@ -69,6 +76,7 @@ namespace storm {
         }
 
 
+        // Construct Jani model based on the stored observations.
         template <typename State, typename Action, typename Reward>
         storm::jani::Model JaniFromObservationsBuilder<State, Action, Reward>::build() {
             const auto name = std::string("mainModel");
@@ -85,6 +93,7 @@ namespace storm {
             std::unordered_map<State, storm::jani::Location> states;
             std::unordered_map<Action, storm::jani::Action> actions;
 
+            // Add state to the automaton if it is not yet present
             auto addState = [&automaton, &states] (auto state) {
                 auto search = states.find(state);
                 if (search == states.end()) {
@@ -94,6 +103,7 @@ namespace storm {
                 }
             };
 
+            // Add action to the automaton if it is not yet present
             auto addAction = [&model, &actions] (auto action) {
                 auto search = actions.find(action);
                 if (search == actions.end()) {

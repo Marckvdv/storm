@@ -7,23 +7,33 @@
 
 namespace storm {
     namespace robust {
+        // A single transition
         template<typename State, typename Action, typename Reward>
         class Transition {
+            // The next state
             State state;
+
+            // The action
             Action action;
+
+            // The reward
             Reward reward;
 
         public:
             Transition(State state, Action action, Reward reward);
+
+            // Getters and their const versions.
             State& getState();
             State const& getState() const;
+
             Action& getAction();
             Action const& getAction() const;
+
             Reward& getReward();
             Reward const& getReward() const;
-            void writeToFile(std::ostream& output) const;
         };
 
+        // A single trace i.e. a sequence of Transition's
         template<typename State, typename Action, typename Reward>
         class Trace {
             State initialState;
@@ -32,12 +42,13 @@ namespace storm {
         public:
             Trace(State initialState);
             void addTransition(Transition<State, Action, Reward> transition);
-            void writeToFile(std::ostream& output) const;
             State getInitialState() const;
+
             std::vector<Transition<State, Action, Reward>>& getTransitions();
             std::vector<Transition<State, Action, Reward>> const& getTransitions() const;
         };
 
+        // Observations, a collection of Trace's
         template<typename State, typename Action, typename Reward>
         class Observations {
             std::vector<Trace<State, Action, Reward>> traces;
@@ -47,7 +58,10 @@ namespace storm {
             Observations();
             Observations(std::vector<TraceType> traces);
             void addTrace(TraceType trace);
+
+            // Write the observations to the output stream
             void writeToFile(std::ostream& output) const;
+
             std::vector<TraceType>& getTraces();
             std::vector<TraceType> const& getTraces() const;
         };

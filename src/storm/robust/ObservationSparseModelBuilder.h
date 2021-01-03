@@ -8,6 +8,8 @@
 
 namespace storm {
     namespace robust {
+        // Generate a sparse model based on the given observations, using the
+        // empirical transition probabilities
         template<typename State, typename Action, typename Reward>
         class ObservationSparseModelBuilder {
             typedef Observations<State, Action, Reward> ObservationsType;
@@ -27,6 +29,7 @@ namespace storm {
         private:
             void printTransitions(TransitionsMap const& transitions);
 
+            // Debug function for printing out the contents of a sparse matrix
             template<typename V>
             void printSparseMatrix(storm::storage::SparseMatrix<V> const& matrix) {
                 int rowCount = matrix.getRowCount();

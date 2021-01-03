@@ -7,6 +7,9 @@
 
 namespace storm {
     namespace robust {
+        // Construct a Jani model combined with a Parameter Region,
+        // representing a 'uncertain' MDP, an MDP with intervals for transition
+        // probabilities.
         template <typename State, typename Action, typename Reward>
         class JaniRegionFromObservationsBuilder {
             typedef std::map<State, std::map<Action, std::map<State, uint64_t>>> TransitionsMap;

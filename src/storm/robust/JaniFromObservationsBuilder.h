@@ -6,6 +6,7 @@
 
 namespace storm {
     namespace robust {
+        // Class for building a Jani model from observations
         template <typename State, typename Action, typename Reward>
         class JaniFromObservationsBuilder {
             typedef std::map<State, std::map<Action, std::map<State, uint64_t>>> TransitionsMap;

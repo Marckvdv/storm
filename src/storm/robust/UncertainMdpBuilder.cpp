@@ -8,19 +8,25 @@
 #include "storm/storage/jani/Edge.h"
 #include "storm/storage/jani/TemplateEdge.h"
 #include "storm/storage/expressions/ExpressionManager.h"
+#include "storm/adapters/JsonAdapter.h"
+#include "storm/robust/Utility.h"
+#include "storm/io/file.h"
 
 namespace storm {
     namespace robust {
         template <typename ValueType>
         TransitionInformation<ValueType>::TransitionInformation() :
             transitionInterval(std::make_pair(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>())),
-            sampleInterval(std::make_pair(storm::utility::one<ValueType>(), storm::utility::one<ValueType>())) {
+            sampleInterval(std::make_pair(storm::utility::one<ValueType>(), storm::utility::one<ValueType>())),
+            branchTaken(std::make_pair(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>())) {
         }
 
         template <typename ValueType>
         TransitionInformation<ValueType>::TransitionInformation(std::pair<ValueType, ValueType> transitionInterval, std::pair<ValueType, ValueType> sampleInterval) :
             transitionInterval(transitionInterval),
-            sampleInterval(sampleInterval) {
+            sampleInterval(sampleInterval),
+            branchTaken(std::make_pair(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>())) {
+
         }
 
         template <typename ValueType>
@@ -30,16 +36,20 @@ namespace storm {
             //if (ratio >= transitionInterval.first) {
             if (transitionInterval.first < ratio || transitionInterval.first == ratio) {
                 transitionInterval.first = (sampleInterval.second*transitionInterval.first + part)/(sampleInterval.second + total);
+                branchTaken.first += 1;
             } else {
                 transitionInterval.first = (sampleInterval.first*transitionInterval.first + part)/(sampleInterval.first + total);
+                branchTaken.second += 1;
             }
 
             // Workaround for RationalFunction only having == and <
             //if (ratio <= transitionInterval.second) {
             if (ratio < transitionInterval.second || ratio == transitionInterval.second) {
                 transitionInterval.second = (sampleInterval.second*transitionInterval.second + part)/(sampleInterval.second + total);
+                branchTaken.first += 1;
             } else {
                 transitionInterval.second = (sampleInterval.first*transitionInterval.second + part)/(sampleInterval.first + total);
+                branchTaken.second += 1;
             }
 
             sampleInterval.first += total;
@@ -47,6 +57,7 @@ namespace storm {
         }
 
 #define TransitionsMap std::map<State, std::map<Action, std::map<State, uint64_t>>>
+#define PriorType std::map<std::tuple<State, Action, State>, TransitionInformation<ValueType>>
         template <typename State, typename Action, typename Reward, typename ValueType>
         UncertainMdpBuilder<State, Action, Reward, ValueType>::UncertainMdpBuilder() {
         }
@@ -83,20 +94,6 @@ namespace storm {
                         i.updateInformation(ValueType(amount), ValueType(total));
                     }
                 }
-            }
-
-            for (auto const &kv : info) {
-                auto const &k = kv.first;
-                auto const &v = kv.second;
-
-                State s1; Action a; State s2;
-                std::tie(s1, a, s2) = k;
-
-
-                ValueType lowerT, upperT, lowerS, upperS;
-                std::tie(lowerT, upperT) = v.transitionInterval;
-                std::tie(lowerS, upperS) = v.sampleInterval;
-                std::cout << "(" << s1 << " " << a << " -> " << s2 << ") =>[" << lowerT << "," << upperT << "] (" << lowerS << "," << upperS << ")" << std::endl;
             }
         }
 
@@ -227,6 +224,52 @@ namespace storm {
             }
 
             return transitions;
+        }
+
+        template<typename State, typename Action, typename Reward, typename ValueType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType>::loadPrior(std::string path) {
+            std::ifstream file;
+            storm::utility::openFile(path, file);
+            storm::json<double> structure;
+            structure << file;
+
+            for (const auto& entry : structure) {
+                State s1 = entry[0];
+                Action a = entry[1];
+                State s2 = entry[2];
+
+                double lowerTd = entry[3], upperTd = entry[4];
+                double lowerSd = entry[5], upperSd = entry[6];
+                ValueType lowerT = ValueType(lowerTd), upperT = ValueType(upperTd);
+                ValueType lowerS = ValueType(lowerSd), upperS = ValueType(upperSd);
+                info[std::make_tuple(s1, a, s2)] = TransitionInformation<ValueType>(std::make_pair(lowerT, upperT), std::make_pair(lowerS, upperS));
+            }
+
+            storm::utility::closeFile(file);
+        }
+
+        template<typename State, typename Action, typename Reward, typename ValueType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType>::loadPrior(PriorType prior) {
+            info = prior;
+        }
+
+        template<typename State, typename Action, typename Reward, typename ValueType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType>::exportIntervals(std::ostream& output) {
+            storm::json<double> structure = storm::json<double>::array();
+            for (auto const &kv : info) {
+                auto const &k = kv.first;
+                auto const &v = kv.second;
+
+                State s1; Action a; State s2;
+                std::tie(s1, a, s2) = k;
+
+                ValueType lowerT, upperT, lowerS, upperS;
+                std::tie(lowerT, upperT) = v.transitionInterval;
+                std::tie(lowerS, upperS) = v.sampleInterval;
+                storm::json<double> transition = {s1, a, s2, toDouble(lowerT), toDouble(upperT), toDouble(lowerS), toDouble(upperS)};
+                structure.push_back(transition);
+            }
+            output << structure << std::endl;
         }
 
         template class UncertainMdpBuilder<uint64_t, uint64_t, double, double>;

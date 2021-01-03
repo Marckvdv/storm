@@ -4,6 +4,7 @@
 
 namespace storm {
     namespace robust {
+        // Types of rectangularity
         enum Rectangularity {
             NOT_RECTANGULAR,
             S_RECTANGULAR,
@@ -13,6 +14,7 @@ namespace storm {
         // AmbiguityArea type
         // Represents the area given by the closed halfspace/ellipsoid:
         // x^T * matrix * x + vector^T * x + scalar >= 0
+        // where * is matrix/vector multiplication
         template <typename ValueType>
         struct AmbiguityArea {
             typedef storm::storage::SparseMatrix<ValueType> MatrixType;

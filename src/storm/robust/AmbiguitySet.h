@@ -14,6 +14,7 @@ namespace storm {
         // AmbiguityArea's
         template <typename ValueType, typename State, typename Action>
         struct AmbiguitySet {
+            // Ambiguity set is a list of intersections
             std::vector<AmbiguityArea<ValueType>> intersections;
             std::map<std::pair<State, Action>, std::vector<ValueType>> constantTerm;
             std::map<std::pair<State, Action>, storm::storage::SparseMatrix<ValueType>> coefficientTerm;
@@ -21,7 +22,11 @@ namespace storm {
             Rectangularity rectangularity;
             size_t dimensions;
 
-            AmbiguitySet(std::vector<AmbiguityArea<ValueType>> intersections = {},  Rectangularity rectangularity = NOT_RECTANGULAR, std::map<std::pair<State, Action>, std::vector<ValueType>> constantTerm = {}, std::map<std::pair<State, Action>, storm::storage::SparseMatrix<ValueType>> coefficientTerm = {});
+            AmbiguitySet(
+                    std::vector<AmbiguityArea<ValueType>> intersections = {},
+                    Rectangularity rectangularity = NOT_RECTANGULAR,
+                    std::map<std::pair<State, Action>, std::vector<ValueType>> constantTerm = {},
+                    std::map<std::pair<State, Action>, storm::storage::SparseMatrix<ValueType>> coefficientTerm = {});
         };
 
         template<typename State, typename Action, typename Reward>

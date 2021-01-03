@@ -4,24 +4,25 @@
 
 namespace storm {
     namespace robust {
-        template <typename State, typename Action, typename ValueType>
-        UniformPolicy<State, Action, ValueType>::UniformPolicy(std::vector<Action> actions) : actions(actions) {
-            STORM_LOG_ASSERT(actions.size() > 0, "Empty action set");
-        }
-
-        template <typename State, typename Action, typename ValueType>
-        void UniformPolicy<State, Action, ValueType>::addHistory(State state) {
+        template<typename State, typename Action, typename ValueType, typename RewardModelType>
+        UniformPolicy<State, Action, ValueType, RewardModelType>::UniformPolicy(storm::models::sparse::Model<ValueType, RewardModelType> const& model) : model(model) {
             // Intentionally left empty
         }
 
-        template <typename State, typename Action, typename ValueType>
-        Action UniformPolicy<State, Action, ValueType>::getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state) {
-            uint64_t index = gen.random_uint(0, actions.size() - 1);
-            return actions[index];
+        template<typename State, typename Action, typename ValueType, typename RewardModelType>
+        void UniformPolicy<State, Action, ValueType, RewardModelType>::addHistory(State state) {
+            // Intentionally left empty
         }
 
-        template class UniformPolicy<uint64_t, uint64_t, double>;
-        template class UniformPolicy<uint64_t, uint64_t, storm::RationalNumber>;
-        template class UniformPolicy<uint64_t, uint64_t, storm::RationalFunction>;
+        template<typename State, typename Action, typename ValueType, typename RewardModelType>
+        Action UniformPolicy<State, Action, ValueType, RewardModelType>::getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state) {
+            auto numActions = model.getTransitionMatrix().getRowGroupEntryCount(state);
+            auto action = gen.random_uint(0, numActions-1);
+            return action;
+        }
+
+        template class UniformPolicy<uint64_t, uint64_t, double, storm::models::sparse::StandardRewardModel<double>>;
+        template class UniformPolicy<uint64_t, uint64_t, storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalNumber>>;
+        template class UniformPolicy<uint64_t, uint64_t, storm::RationalFunction, storm::models::sparse::StandardRewardModel<storm::RationalFunction>>;
     }
 }

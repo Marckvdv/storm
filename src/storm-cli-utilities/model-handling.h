@@ -1202,10 +1202,14 @@ namespace storm {
                     for (uint64_t i = 0; i < numActions; ++i) {
                         actions.push_back(i);
                     }
-                    policy = new storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType>(actions);
+                    policy = new storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType>(*sparseModel);
                 }
                 storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*sparseModel.get(), *policy);
-                auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds());
+                int initialState = 0;
+                if (robustSettings.isInitialStateSet()) {
+                    initialState = robustSettings.getInitialState();
+                }
+                auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds(), !robustSettings.isInitialStateSet(), initialState);
 
                 if (robustSettings.isObservationsExportSet()) {
                     std::ofstream o(robustSettings.getObservationsExportFilename());
@@ -1214,16 +1218,26 @@ namespace storm {
                     observations.writeToFile(std::cout);
                 }
 
-                storm::robust::UncertainMdpBuilder<uint64_t, uint64_t, BuildValueType, BuildValueType> builder;
-                builder.processObservations(observations);
+                if (robustSettings.generateUncertainMdp()) {
+                    storm::robust::UncertainMdpBuilder<uint64_t, uint64_t, BuildValueType, BuildValueType> builder;
+                    if (robustSettings.isPriorFileSet()) {
+                        builder.loadPrior(robustSettings.getPriorFile());
+                    }
+                    builder.processObservations(observations);
+                    if (robustSettings.isIntervalExportSet()) {
+                        std::ofstream o(robustSettings.getIntervalExportFilename());
+                        builder.exportIntervals(o);
+                    } else {
+                        builder.exportIntervals(std::cout);
+                    }
+                }
 
                 delete policy;
             }
         }
-        
+
         template <typename ValueType>
         void processInputWithValueType(SymbolicInput const& input, ModelProcessingInformation const& mpi) {
-            
             if (mpi.ddType == storm::dd::DdType::CUDD) {
                 STORM_LOG_ASSERT(mpi.verificationValueType == ModelProcessingInformation::ValueType::FinitePrecision && mpi.buildValueType == ModelProcessingInformation::ValueType::FinitePrecision && (std::is_same<ValueType, double>::value), "Unexpected value type for Dd library cudd.");
                 processInputWithValueTypeAndDdlib<storm::dd::DdType::CUDD, double>(input, mpi);
