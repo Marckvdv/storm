@@ -16,7 +16,9 @@ namespace storm {
 
         template<typename State, typename Action, typename ValueType, typename RewardModelType>
         Action UniformPolicy<State, Action, ValueType, RewardModelType>::getNextAction(storm::utility::RandomProbabilityGenerator<ValueType> gen, State state) {
-            auto numActions = model.getTransitionMatrix().getRowGroupEntryCount(state);
+            auto transitions = model.getTransitionMatrix();
+            auto indices = transitions.getRowGroupIndices();
+            auto numActions = indices[state+1] - indices[state];
             auto action = gen.random_uint(0, numActions-1);
             return action;
         }

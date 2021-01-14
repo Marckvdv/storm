@@ -40,7 +40,7 @@ namespace storm {
             std::vector<Transition<State, Action, Reward>> transitions;
 
         public:
-            Trace(State initialState);
+            Trace(State initialState, int capacity = 0);
             void addTransition(Transition<State, Action, Reward> transition);
             State getInitialState() const;
 
@@ -55,7 +55,7 @@ namespace storm {
             typedef Trace<State, Action, Reward> TraceType;
 
         public:
-            Observations();
+            Observations(int capacity = 0);
             Observations(std::vector<TraceType> traces);
             void addTrace(TraceType trace);
 

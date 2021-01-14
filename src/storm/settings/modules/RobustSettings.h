@@ -23,6 +23,7 @@ namespace storm {
                 std::string getObservationsExportFilename() const;
                 std::string getPolicyType() const;
                 std::string getPriorType() const;
+                double getPriorInit() const;
                 bool isInitialStateSet() const;
                 int getInitialState() const;
                 bool isPriorFileSet() const;
@@ -46,6 +47,7 @@ namespace storm {
                 static const std::string initialStateName;
                 static const std::string priorFileName;
                 static const std::string intervalExportName;
+                static const std::string priorInitName;
             };
 
         } // namespace modules

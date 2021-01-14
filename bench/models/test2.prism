@@ -1,0 +1,15 @@
+// Coin flip model
+mdp
+
+const double x;
+
+module test2
+	s: [0..5] init 0;
+
+	[a] s=0 -> x:(s'=1) + (1-x):(s'=0);
+	[a] s=1 -> x:(s'=2) + (1-x):(s'=0);
+	[a] s=2 -> x:(s'=3) + (1-x):(s'=0);
+	[a] s=3 -> x:(s'=4) + (1-x):(s'=0);
+	[a] s=4 -> x:(s'=5) + (1-x):(s'=0);
+	[a] s=5 -> 1:(s'=0);
+endmodule

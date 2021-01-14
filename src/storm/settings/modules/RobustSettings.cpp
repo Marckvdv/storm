@@ -24,6 +24,7 @@ namespace storm {
             const std::string RobustSettings::initialStateName = "initialState";
             const std::string RobustSettings::priorFileName = "priorFile";
             const std::string RobustSettings::intervalExportName = "intervalExport";
+            const std::string RobustSettings::priorInitName = "priorInit";
 
             RobustSettings::RobustSettings() : ModuleSettings(moduleName) {
                 this->addOption(storm::settings::OptionBuilder(moduleName, roundsName, false, "amount of rounds to perform")
@@ -69,6 +70,12 @@ namespace storm {
 
                 this->addOption(storm::settings::OptionBuilder(moduleName, priorFileName, false, "Parses the prior given in the file.")
                     .addArgument(storm::settings::ArgumentBuilder::createStringArgument("priorfile", "The name of the file from which to read the prior input.").addValidatorString(ArgumentValidatorFactory::createExistingFileValidator()).build()).build());
+
+                this->addOption(storm::settings::OptionBuilder(moduleName, priorInitName, false, "prior initial value")
+                    .setIsAdvanced()
+                    .addArgument(
+                        storm::settings::ArgumentBuilder::createDoubleArgument("value", "prior initial value")
+                        .setDefaultValueDouble(1.0).build()).build());
             }
             
             int RobustSettings::rounds() const {
@@ -174,6 +181,13 @@ namespace storm {
                     this->getOption(intervalExportName)
                         .getArgumentByName("output")
                         .getValueAsString();
+            }
+
+            double RobustSettings::getPriorInit() const {
+                return
+                    this->getOption(priorInitName)
+                        .getArgumentByName("value")
+                        .getValueAsDouble();
             }
         } // namespace modules
     } // namespace settings

@@ -44,8 +44,10 @@ namespace storm {
 
         // Trace
         template<typename State, typename Action, typename Reward>
-        Trace<State, Action, Reward>::Trace(State initialState)
-            : initialState(initialState) {
+        Trace<State, Action, Reward>::Trace(State initialState, int capacity) :
+            initialState(initialState) {
+
+            transitions.reserve(capacity);
         }
 
         template<typename State, typename Action, typename Reward>
@@ -70,7 +72,8 @@ namespace storm {
 
         // Observations
         template<typename State, typename Action, typename Reward>
-        Observations<State, Action, Reward>::Observations() {
+        Observations<State, Action, Reward>::Observations(int capacity) {
+            traces.reserve(capacity);
         }
 
         template<typename State, typename Action, typename Reward>

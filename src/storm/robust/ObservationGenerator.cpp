@@ -33,6 +33,7 @@ namespace storm {
             ValueType sum = storm::utility::zero<ValueType>();
             auto transitions = model.getTransitionMatrix();
             auto matrixRow = transitions.getRow(row);
+            auto prevState = currentState;
             boost::optional<Transition<State, Action, Reward>> result;
             for (auto const& entry : matrixRow) {
                 sum += entry.getValue();
@@ -62,7 +63,7 @@ namespace storm {
             if (useRandomInitialState) {
                 initialState = randomInitialState();
             }
-            Trace<State, Action, Reward> trace(initialState);
+            Trace<State, Action, Reward> trace(initialState, steps);
             currentState = initialState;
 
             // Add the initial state to the history of states visited
@@ -86,6 +87,7 @@ namespace storm {
 
         template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
         Observations<State, Action, Reward> ObservationGenerator<State, Action, Reward, ValueType, RewardModelType>::generateObservations(int traces, int steps, bool useRandomInitialState, State initialState) {
+            observations = Observations<State, Action, Reward>(traces);
             for (int i = 0; i < traces; ++i) {
                 newTrace(steps, useRandomInitialState, initialState);
             }

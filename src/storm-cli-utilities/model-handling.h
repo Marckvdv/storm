@@ -1182,26 +1182,15 @@ namespace storm {
                 }
             }
 
-            std::cout << "ROUNDS: " << robustSettings.rounds() << std::endl;
-            std::cout << "RUNS: " << robustSettings.runs() << std::endl;
-            auto model = input.model.get();
-            model = model.toJani();
-            auto sparseModel = storm::api::buildSparseModel<BuildValueType>(model, storm::builder::BuilderOptions());
-            std::ofstream f("out.dot");
-            sparseModel->writeDotToStream(f);
-            if (robustSettings.generateObservations()) {
+            if (robustSettings.generateObservations() && input.model) {
+                auto model = input.model.get();
+                model = model.toJani();
+                auto sparseModel = storm::api::buildSparseModel<BuildValueType>(model, storm::builder::BuilderOptions());
                 storm::robust::Policy<uint64_t, uint64_t, BuildValueType>* policy;
                 if (robustSettings.isShedulerSet()) {
-                    std::cout << "Using specified scheduler" << std::endl;
                     auto path = robustSettings.getSchedulerInputFilename();
                     policy = new storm::robust::StationaryPolicy<uint64_t, uint64_t, BuildValueType>(path);
                 } else {
-                    std::cout << "Using uniform scheduler" << std::endl;
-                    auto numActions = model.asJaniModel().getActions().size();
-                    std::vector<uint64_t> actions;
-                    for (uint64_t i = 0; i < numActions; ++i) {
-                        actions.push_back(i);
-                    }
                     policy = new storm::robust::UniformPolicy<uint64_t, uint64_t, BuildValueType>(*sparseModel);
                 }
                 storm::robust::ObservationGenerator<uint64_t, uint64_t, BuildValueType, BuildValueType> generator(*sparseModel.get(), *policy);
@@ -1209,17 +1198,20 @@ namespace storm {
                 if (robustSettings.isInitialStateSet()) {
                     initialState = robustSettings.getInitialState();
                 }
+                storm::utility::Stopwatch observationsWatch(true);
                 auto observations = generator.generateObservations(robustSettings.runs(), robustSettings.rounds(), !robustSettings.isInitialStateSet(), initialState);
+                observationsWatch.stop();
+                std::cerr << observationsWatch.getTimeInNanoseconds() << std::endl;
 
                 if (robustSettings.isObservationsExportSet()) {
                     std::ofstream o(robustSettings.getObservationsExportFilename());
                     observations.writeToFile(o);
-                } else {
-                    observations.writeToFile(std::cout);
-                }
+                }// else {
+                //    observations.writeToFile(std::cout);
+                //}
 
                 if (robustSettings.generateUncertainMdp()) {
-                    storm::robust::UncertainMdpBuilder<uint64_t, uint64_t, BuildValueType, BuildValueType> builder;
+                    storm::robust::UncertainMdpBuilder<uint64_t, uint64_t, BuildValueType, BuildValueType> builder(BuildValueType(robustSettings.getPriorInit()));
                     if (robustSettings.isPriorFileSet()) {
                         builder.loadPrior(robustSettings.getPriorFile());
                     }
@@ -1227,9 +1219,16 @@ namespace storm {
                     if (robustSettings.isIntervalExportSet()) {
                         std::ofstream o(robustSettings.getIntervalExportFilename());
                         builder.exportIntervals(o);
-                    } else {
-                        builder.exportIntervals(std::cout);
-                    }
+                    }// else {
+                    //    builder.exportIntervals(std::cout);
+                    //}
+
+                    auto error = builder.compareToTrue(*sparseModel);
+                    std::cerr << error << std::endl;
+
+                    auto branchStats = builder.branchStatistics();
+                    //std::cerr << storm::utility::convertNumber<double>(branchStats.first) / storm::utility::convertNumber<double>(branchStats.second) << std::endl;
+                    std::cerr << branchStats.first - branchStats.second << std::endl;
                 }
 
                 delete policy;

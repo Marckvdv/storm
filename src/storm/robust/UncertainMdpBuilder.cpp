@@ -15,9 +15,13 @@
 namespace storm {
     namespace robust {
         template <typename ValueType>
-        TransitionInformation<ValueType>::TransitionInformation() :
+        TransitionInformation<ValueType>::TransitionInformation() : TransitionInformation(storm::utility::one<ValueType>()) {
+        }
+
+        template <typename ValueType>
+        TransitionInformation<ValueType>::TransitionInformation(ValueType initialPrior) :
             transitionInterval(std::make_pair(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>())),
-            sampleInterval(std::make_pair(storm::utility::one<ValueType>(), storm::utility::one<ValueType>())),
+            sampleInterval(std::make_pair(initialPrior, initialPrior)),
             branchTaken(std::make_pair(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>())) {
         }
 
@@ -58,12 +62,13 @@ namespace storm {
 
 #define TransitionsMap std::map<State, std::map<Action, std::map<State, uint64_t>>>
 #define PriorType std::map<std::tuple<State, Action, State>, TransitionInformation<ValueType>>
-        template <typename State, typename Action, typename Reward, typename ValueType>
-        UncertainMdpBuilder<State, Action, Reward, ValueType>::UncertainMdpBuilder() {
+        template <typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::UncertainMdpBuilder(ValueType initialPrior) :
+            initialPrior(initialPrior) {
         }
 
-        template <typename State, typename Action, typename Reward, typename ValueType>
-        void UncertainMdpBuilder<State, Action, Reward, ValueType>::processObservations(Observations<State, Action, Reward> const& observations) {
+        template <typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::processObservations(Observations<State, Action, Reward> const& observations) {
             auto transitionsMap = calculateTransitionsMap(observations);
             for (auto const& t1 : transitionsMap) {
                 auto& s1 = t1.first;
@@ -88,17 +93,19 @@ namespace storm {
 
                         auto it = info.find(t);
                         if (it == info.end()) {
-                            info[t] = TransitionInformation<ValueType>();
+                            info[t] = TransitionInformation<ValueType>(initialPrior);
                         }
                         auto& i = info[t];
                         i.updateInformation(ValueType(amount), ValueType(total));
                     }
                 }
             }
+
+            std::cout << "INFO: " << info.size() << std::endl;
         }
 
-        template <typename State, typename Action, typename Reward, typename ValueType>
-        storm::jani::Model UncertainMdpBuilder<State, Action, Reward, ValueType>::buildMdp() {
+        template <typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        storm::jani::Model UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::buildMdp() {
 //            storm::utility::parametric::Valuation<storm::RationalFunction> lowerBound, upperBound;
             std::unordered_map<storm::expressions::Variable, ValueType> lowerBound, upperBound;
             
@@ -182,8 +189,8 @@ namespace storm {
             return model;
         }
 
-        template<typename State, typename Action, typename Reward, typename ValueType>
-        TransitionsMap UncertainMdpBuilder<State, Action, Reward, ValueType>::calculateTransitionsMap(Observations<State, Action, Reward> const& observations) {
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        TransitionsMap UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::calculateTransitionsMap(Observations<State, Action, Reward> const& observations) {
             TransitionsMap transitions;
             auto addTransition = [](State s1, Action action, State s2, auto& map) {
                 auto it = map.find(s1);
@@ -226,8 +233,8 @@ namespace storm {
             return transitions;
         }
 
-        template<typename State, typename Action, typename Reward, typename ValueType>
-        void UncertainMdpBuilder<State, Action, Reward, ValueType>::loadPrior(std::string path) {
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::loadPrior(std::string path) {
             std::ifstream file;
             storm::utility::openFile(path, file);
             storm::json<double> structure;
@@ -248,13 +255,13 @@ namespace storm {
             storm::utility::closeFile(file);
         }
 
-        template<typename State, typename Action, typename Reward, typename ValueType>
-        void UncertainMdpBuilder<State, Action, Reward, ValueType>::loadPrior(PriorType prior) {
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::loadPrior(PriorType prior) {
             info = prior;
         }
 
-        template<typename State, typename Action, typename Reward, typename ValueType>
-        void UncertainMdpBuilder<State, Action, Reward, ValueType>::exportIntervals(std::ostream& output) {
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        void UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::exportIntervals(std::ostream& output) {
             storm::json<double> structure = storm::json<double>::array();
             for (auto const &kv : info) {
                 auto const &k = kv.first;
@@ -272,8 +279,61 @@ namespace storm {
             output << structure << std::endl;
         }
 
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        ValueType UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::compareToTrue(storm::models::sparse::Model<ValueType, RewardModelType> const& model) {
+            auto transitions = model.getTransitionMatrix();
+            auto stateCount = transitions.getRowGroupCount();
+            ValueType totalError = storm::utility::zero<ValueType>();
+
+            auto n = 0;
+            for (auto state = 0; state < stateCount; ++state) {
+                auto choiceCount = transitions.getRowGroupSize(state);
+                for (auto action = 0; action < choiceCount; ++action) {
+                    auto rowIndex = transitions.getRowGroupIndices()[state] + action;
+                    auto row = transitions.getRow(rowIndex);
+
+                    for (auto &entry : row) {
+                        n += 1;
+                        auto error = storm::utility::zero<ValueType>();
+                        auto destination = entry.getColumn();
+                        auto triplet = std::make_tuple(state, action, destination);
+                        auto interval = std::make_pair(storm::utility::zero<ValueType>(), storm::utility::zero<ValueType>());
+                        auto trueProb = entry.getValue();
+                        auto find = info.find(triplet);
+                        if (find != info.end()) {
+                            auto prior = find->second;
+                            interval = prior.transitionInterval;
+                        }
+                        // Not finding the triplet assumes single value
+                        // interval [0, 0]
+
+                        error += storm::utility::abs<ValueType>(trueProb - interval.first);
+                        error += storm::utility::abs<ValueType>(trueProb - interval.second);
+                        totalError += error / 2;
+                    }
+                }
+            }
+
+            return totalError / n;
+        }
+
+        template<typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType>
+        std::pair<ValueType, ValueType> UncertainMdpBuilder<State, Action, Reward, ValueType, RewardModelType>::branchStatistics() {
+            auto total = std::pair<ValueType, ValueType>(storm::utility::zero<ValueType>(), storm::utility::zero<ValueType>());
+
+            for (auto &prior : info) {
+                total.first += prior.second.branchTaken.first;
+                total.second += prior.second.branchTaken.second;
+            }
+
+            return total;
+        }
+
         template class UncertainMdpBuilder<uint64_t, uint64_t, double, double>;
         template class UncertainMdpBuilder<uint64_t, uint64_t, storm::RationalNumber, storm::RationalNumber>;
         template class UncertainMdpBuilder<uint64_t, uint64_t, storm::RationalFunction, storm::RationalFunction>;
     }
 }
+
+#undef TransitionsMap
+#undef PriorType

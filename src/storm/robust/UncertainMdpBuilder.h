@@ -2,6 +2,7 @@
 
 #include "Observations.h"
 
+#include "storm/models/sparse/Model.h"
 #include "storm/storage/jani/Model.h"
 #include "storm-pars/storage/ParameterRegion.h"
 
@@ -22,6 +23,7 @@ namespace storm {
             std::pair<ValueType, ValueType> branchTaken;
 
             TransitionInformation();
+            TransitionInformation(ValueType initialPrior);
             TransitionInformation(
                     std::pair<ValueType, ValueType> transitionInterval,
                     std::pair<ValueType, ValueType> sampleInterval);
@@ -31,13 +33,13 @@ namespace storm {
             void updateInformation(ValueType part, ValueType total);
         };
 
-        template <typename State, typename Action, typename Reward, typename ValueType>
+        template <typename State, typename Action, typename Reward, typename ValueType, typename RewardModelType = storm::models::sparse::StandardRewardModel<ValueType>>
         class UncertainMdpBuilder {
             typedef std::map<State, std::map<Action, std::map<State, uint64_t>>> TransitionsMap;
             typedef std::map<std::tuple<State, Action, State>, TransitionInformation<ValueType>> PriorType;
 
         public:
-            UncertainMdpBuilder();
+            UncertainMdpBuilder(ValueType initialPrior);
 
             // Update current transition information with the given observations
             void processObservations(Observations<State, Action, Reward> const& observations);
@@ -53,10 +55,15 @@ namespace storm {
 
             // Build a MDP with the current information
             storm::jani::Model buildMdp();
+
+            // Compare to true model
+            ValueType compareToTrue(storm::models::sparse::Model<ValueType, RewardModelType> const& model);
+            std::pair<ValueType, ValueType> branchStatistics();
         private:
             TransitionsMap calculateTransitionsMap(Observations<State, Action, Reward> const& observations);
 
             PriorType info;
+            ValueType initialPrior;
         };
     }
 }

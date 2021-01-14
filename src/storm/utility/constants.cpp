@@ -691,6 +691,15 @@ namespace storm {
             // FIXME: this should be treated more properly.
             return storm::RationalFunction(convertNumber<RationalFunctionCoefficient>(100000000000));
         }
+
+        template<>
+        RationalFunction abs(RationalFunction const& f) {
+            if (f < zero<RationalFunction>()) {
+                return -f;
+            } else {
+                return f;
+            }
+        }
         
         template<>
         bool isOne(storm::RationalFunction const& a) {
@@ -1031,6 +1040,7 @@ namespace storm {
         // Instantiations for rational function.
         template RationalFunction one();
         template RationalFunction zero();
+        template RationalFunction abs(RationalFunction const& f);
         template storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction> simplify(storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction> matrixEntry);
         template storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction>& simplify(storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction>& matrixEntry);
         template storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction>&& simplify(storm::storage::MatrixEntry<storm::storage::sparse::state_type, RationalFunction>&& matrixEntry);
